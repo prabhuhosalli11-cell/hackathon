@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text, Html, Sphere, Cylinder, Box, Torus } from '@react-three/drei';
+import { OrbitControls, Text, Html, Sphere, Cylinder, Box, Torus, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Nodes in our pipeline
@@ -30,41 +30,49 @@ function NodeMesh({ node, activeId }) {
 
   const getGeometry = () => {
     switch (node.shape) {
-      case 'box': return <Box args={[1, 1, 1]} />;
-      case 'cylinder': return <Cylinder args={[0.8, 0.8, 0.5, 32]} rotation={[Math.PI/2, 0, 0]} />;
-      case 'sphere': return <Sphere args={[0.7, 32, 32]} />;
-      default: return <Sphere args={[0.7, 32, 32]} />;
+      case 'box': return <Box args={[1.2, 1.2, 1.2]} radius={0.1} />;
+      case 'cylinder': return <Cylinder args={[0.9, 0.9, 0.6, 64]} rotation={[Math.PI/2, 0, 0]} />;
+      case 'sphere': return <Sphere args={[0.85, 64, 64]} />;
+      default: return <Sphere args={[0.85, 64, 64]} />;
     }
   };
 
   return (
     <group position={node.position} ref={meshRef}>
       {getGeometry()}
-      <meshStandardMaterial 
-        color={isActive ? '#ffffff' : node.color} 
+      <meshPhysicalMaterial 
+        color={node.color} 
         emissive={node.color}
-        emissiveIntensity={isActive ? 2 : 0.5}
-        roughness={0.2}
-        metalness={0.8}
-        wireframe={node.shape === 'sphere' ? true : false}
+        emissiveIntensity={isActive ? 1.5 : 0.2}
+        roughness={0.1}
+        metalness={0.1}
+        transmission={0.8}
+        thickness={1.5}
+        clearcoat={1}
+        clearcoatRoughness={0.1}
+        transparent={true}
+        opacity={0.9}
       />
       
       {isActive && (
-        <Sphere args={[1.2, 16, 16]}>
-          <meshBasicMaterial color={node.color} transparent opacity={0.2} wireframe />
+        <Sphere args={[1.3, 32, 32]}>
+          <meshBasicMaterial color={node.color} transparent opacity={0.1} wireframe />
         </Sphere>
       )}
 
-      <Html position={[0, -1.2, 0]} center>
+      <Html position={[0, -1.4, 0]} center zIndexRange={[100, 0]}>
         <div style={{
-          background: 'rgba(15, 23, 42, 0.8)',
-          padding: '4px 8px',
-          borderRadius: '4px',
+          background: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(8px)',
+          padding: '6px 12px',
+          borderRadius: '8px',
           color: 'white',
-          fontSize: '10px',
-          fontFamily: 'monospace',
+          fontSize: '11px',
+          fontFamily: 'Inter, sans-serif',
+          fontWeight: 500,
           whiteSpace: 'nowrap',
-          border: `1px solid ${node.color}`
+          border: `1px solid rgba(255,255,255,0.1)`,
+          boxShadow: `0 4px 12px rgba(0,0,0,0.2)`
         }}>
           {node.label}
         </div>
@@ -75,7 +83,6 @@ function NodeMesh({ node, activeId }) {
 
 // Particle system to show events flowing
 function FlowParticles({ source, target, color, playSequence }) {
-  const particlesCount = 5;
   const meshRef = useRef();
   
   useFrame((state) => {
@@ -95,21 +102,23 @@ function FlowParticles({ source, target, color, playSequence }) {
   if (!playSequence) return null;
 
   return (
-    <Sphere args={[0.15, 16, 16]} ref={meshRef}>
+    <Sphere args={[0.2, 32, 32]} ref={meshRef}>
       <meshBasicMaterial color={color} />
-      <pointLight color={color} distance={3} intensity={2} />
+      <pointLight color={color} distance={4} intensity={3} />
     </Sphere>
   );
 }
 
 export default function Pipeline3D({ activeNode, flow }) {
   return (
-    <Canvas camera={{ position: [0, 0, 10], fov: 45 }}>
-      <ambientLight intensity={0.2} />
-      <pointLight position={[10, 10, 10]} intensity={1} />
-      <spotLight position={[-10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
+    <Canvas camera={{ position: [0, 0, 11], fov: 45 }}>
+      <color attach="background" args={['#020617']} />
+      <Environment preset="city" />
+      <ambientLight intensity={0.4} />
+      <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={2} castShadow color="#ffffff" />
+      <spotLight position={[-10, -10, -10]} angle={0.15} penumbra={1} intensity={1} color="#3b82f6" />
       
-      <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} maxPolarAngle={Math.PI / 2} minPolarAngle={Math.PI / 4} />
+      <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.3} maxPolarAngle={Math.PI / 2 + 0.1} minPolarAngle={Math.PI / 3} />
 
       {/* Render Nodes */}
       {nodes.map(node => (

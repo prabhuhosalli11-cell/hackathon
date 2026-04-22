@@ -16,9 +16,13 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.0",
     "express": "^5.2.1",
     "ioredis": "^5.10.1",
     "kafkajs": "^2.2.4",
+    "lucide-react": "^1.8.0",
+    "three": "^0.184.0",
     "ws": "^8.20.0"
   },
   "devDependencies": {
