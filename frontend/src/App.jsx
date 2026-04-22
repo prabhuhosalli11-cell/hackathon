@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Html, Sphere, Cylinder, Box, Line } from "@react-three/drei";
 import * as THREE from "three";
+import gsap from "gsap";
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
 const EVENTS = [
@@ -154,6 +155,41 @@ function PipelineNode({ node, isActive, isHovered, onOver, onOut, onClick }) {
   );
 }
 
+// ─── 3D: BACKGROUND PARTICLES ───────────────────────────────────────────────────
+function DataStreamBackground() {
+  const count = 800;
+  const mesh = useRef();
+  
+  const dummy = new THREE.Object3D();
+  const particles = useRef(
+    Array.from({ length: count }, () => ({
+      x: (Math.random() - 0.5) * 40,
+      y: (Math.random() - 0.5) * 40,
+      z: (Math.random() - 0.5) * 40,
+      speed: Math.random() * 2 + 0.5
+    }))
+  );
+
+  useFrame((state, dt) => {
+    if (!mesh.current) return;
+    particles.current.forEach((p, i) => {
+      p.x += dt * p.speed * 2;
+      if (p.x > 20) p.x = -20;
+      dummy.position.set(p.x, p.y, p.z);
+      dummy.updateMatrix();
+      mesh.current.setMatrixAt(i, dummy.matrix);
+    });
+    mesh.current.instanceMatrix.needsUpdate = true;
+  });
+
+  return (
+    <instancedMesh ref={mesh} args={[null, null, count]}>
+      <sphereGeometry args={[0.03, 8, 8]} />
+      <meshBasicMaterial color="#3b82f6" transparent opacity={0.4} />
+    </instancedMesh>
+  );
+}
+
 // ─── 3D: FULL SCENE ───────────────────────────────────────────────────────────
 function Scene({ activeNode, activeFlow, onNodeClick }) {
   const [hov, setHov] = useState(null);
@@ -164,6 +200,7 @@ function Scene({ activeNode, activeFlow, onNodeClick }) {
       <spotLight position={[10, 12, 8]} angle={0.2} penumbra={1} intensity={2.5} color="#ffffff" castShadow />
       <spotLight position={[-10, -8, -5]} angle={0.2} penumbra={1} intensity={1.2} color="#3b82f6" />
       <pointLight position={[0, 0, 6]} intensity={0.4} color="#8b5cf6" />
+      <DataStreamBackground />
 
       <OrbitControls
         enableZoom={false} enablePan={false}
@@ -393,6 +430,24 @@ export default function App() {
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
+  const sidebarRef = useRef();
+  const bottomStatsRef = useRef();
+
+  useEffect(() => {
+    if (sidebarRef.current) {
+      gsap.fromTo(sidebarRef.current.children, 
+        { x: -30, opacity: 0 }, 
+        { x: 0, opacity: 1, duration: 0.7, stagger: 0.1, ease: "power3.out" }
+      );
+    }
+    if (bottomStatsRef.current) {
+      gsap.fromTo(bottomStatsRef.current,
+        { y: 50, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, ease: "power3.out", delay: 0.5 }
+      );
+    }
+  }, []);
+
   const hitRate = (metrics.cacheHits + metrics.apiCalls) > 0
     ? Math.round(metrics.cacheHits / (metrics.cacheHits + metrics.apiCalls) * 100)
     : 0;
@@ -416,7 +471,7 @@ export default function App() {
       `}</style>
 
       {/* ═══ SIDEBAR ═══ */}
-      <aside style={{
+      <aside ref={sidebarRef} style={{
         background: "rgba(10,18,36,0.93)", borderRight: "1px solid rgba(255,255,255,0.06)",
         backdropFilter: "blur(14px)", display: "flex", flexDirection: "column",
         padding: "20px", gap: 14, overflowY: "auto", height: "100vh",
@@ -524,7 +579,7 @@ export default function App() {
         </div>
 
         {/* Bottom stats bar */}
-        <div style={{
+        <div ref={bottomStatsRef} style={{
           position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)",
           background: "rgba(10,18,36,0.93)", backdropFilter: "blur(16px)",
           border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14,
